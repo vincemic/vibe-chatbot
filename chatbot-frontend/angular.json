@@ -59,6 +59,10 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "open": true,
+            "port": 4200
+          },
           "configurations": {
             "production": {
               "buildTarget": "chatbot-frontend:build:production"

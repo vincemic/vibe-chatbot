@@ -7,6 +7,17 @@
       "request": "launch",
       "program": "${workspaceFolder}/start-app.js",
       "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Launch with Browser",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/launch-browser.js",
+      "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
     },
     {
@@ -33,10 +44,19 @@
       "name": "Launch Angular Frontend",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/chatbot-frontend/node_modules/@angular/cli/bin/ng",
-      "args": ["serve", "--open"],
+      "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/ng.cmd",
+      "args": ["serve", "--open", "--port", "4200"],
       "cwd": "${workspaceFolder}/chatbot-frontend",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "windows": {
+        "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/ng.cmd"
+      },
+      "linux": {
+        "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/ng"
+      },
+      "osx": {
+        "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/ng"
+      }
     },
     {
       "name": "Debug E2E Tests",
@@ -55,6 +75,12 @@
     {
       "name": "Launch Full Stack App",
       "configurations": ["Launch .NET API", "Launch Angular Frontend"],
+      "stopAll": true,
+      "preLaunchTask": "install-frontend-deps"
+    },
+    {
+      "name": "Quick Launch (Browser)",
+      "configurations": ["Launch with Browser"],
       "stopAll": true
     }
   ]
