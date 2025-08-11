@@ -20,7 +20,12 @@
           <span class="message-user">{{ message.user }}</span>
           <span class="message-time">{{ message.timestamp | date:'short' }}</span>
         </div>
-        <div class="message-text">{{ message.message }}</div>
+        <div class="message-text">
+          <ng-container [ngSwitch]="getMessageType(message.message)">
+            <app-quiz *ngSwitchCase="'quiz'" [quizData]="getQuizData(message.message)"></app-quiz>
+            <div *ngSwitchDefault [innerHTML]="formatMessage(message.message)"></div>
+          </ng-container>
+        </div>
       </div>
     </div>
 

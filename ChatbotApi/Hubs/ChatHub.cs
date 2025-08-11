@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Serilog;
 
 namespace ChatbotApi.Hubs
@@ -24,12 +25,15 @@ namespace ChatbotApi.Hubs
             {
                 _logger.LogInformation("Received message from user {User}: {Message}", user, message);
 
-                // Create chat history
+                // Create chat history with system message that includes plugin instructions
                 var chatHistory = new ChatHistory();
-                chatHistory.AddSystemMessage("You are a helpful AI assistant. Be concise and friendly in your responses.");
+                chatHistory.AddSystemMessage(@"You are a helpful AI assistant with access to quiz functionality. 
+When users ask to start a quiz or interact with quizzes, use the available quiz functions.
+For quiz-related requests, always use the QuizPlugin functions.
+Be concise and friendly in your responses.");
                 chatHistory.AddUserMessage(message);
 
-                // Get AI response
+                // Use the injected chat completion service (which will be MockChatCompletionService)
                 var response = await _chatCompletionService.GetChatMessageContentAsync(chatHistory);
 
                 _logger.LogInformation("AI response generated for user {User}", user);

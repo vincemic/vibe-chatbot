@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ChatService, ChatMessage } from '../../services/chat.service';
 import { NGXLogger } from 'ngx-logger';
 import { Subscription } from 'rxjs';
+import { QuizComponent, QuizData } from '../quiz/quiz.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, QuizComponent],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -114,5 +115,62 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.chatService.stopConnection().then(() => {
       setTimeout(() => this.chatService.startConnection(), 1000);
     });
+  }
+
+  formatMessage(message: string): string {
+    try {
+      // Try to parse as JSON to check if it's a quiz message
+      const quizData = JSON.parse(message);
+      
+      if (quizData.type === 'quiz_started' || 
+          quizData.type === 'quiz_continue' || 
+          quizData.type === 'quiz_completed' || 
+          quizData.type === 'quiz_status') {
+        // This is a quiz message, but we return empty string since we handle it separately
+        return '';
+      }
+    } catch (e) {
+      // Not JSON, return as regular message
+    }
+    
+    // Format regular messages with basic markdown support
+    return this.formatRegularMessage(message);
+  }
+
+  getMessageType(message: string): 'quiz' | 'regular' {
+    try {
+      const quizData = JSON.parse(message);
+      if (quizData.type === 'quiz_started' || 
+          quizData.type === 'quiz_continue' || 
+          quizData.type === 'quiz_completed' || 
+          quizData.type === 'quiz_status') {
+        return 'quiz';
+      }
+    } catch (e) {
+      // Not JSON
+    }
+    return 'regular';
+  }
+
+  getQuizData(message: string): QuizData {
+    try {
+      return JSON.parse(message) as QuizData;
+    } catch (e) {
+      // Fallback - this shouldn't happen if getMessageType is used correctly
+      return { type: 'quiz_started' } as QuizData;
+    }
+  }
+
+  isQuizMessage(messageData: any): boolean {
+    return messageData && typeof messageData === 'object' && messageData.type && 
+           ['quiz_started', 'quiz_continue', 'quiz_completed', 'quiz_status'].includes(messageData.type);
+  }
+
+  private formatRegularMessage(message: string): string {
+    // Basic markdown support for regular messages
+    return message
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
   }
 }

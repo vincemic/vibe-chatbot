@@ -48,12 +48,23 @@ namespace ChatbotApi.Plugins
                 var categoryText = !string.IsNullOrEmpty(session.Category) ? $" in {session.Category}" : "";
                 var difficultyText = !string.IsNullOrEmpty(session.Difficulty) ? $" ({session.Difficulty} level)" : "";
 
-                return $"🎯 **Quiz Started!** {categoryText}{difficultyText}\n\n" +
-                       $"📊 **Questions:** {session.TotalQuestions} | **Score:** 0/{session.TotalQuestions}\n\n" +
-                       $"**Question 1/{session.TotalQuestions}:**\n" +
-                       $"{firstQuestion.Question}\n\n" +
-                       FormatAnswerOptions(firstQuestion) + "\n\n" +
-                       "💡 Type your answer (A, B, C, or D) to continue!";
+                var response = new
+                {
+                    type = "quiz_started",
+                    category = session.Category,
+                    difficulty = session.Difficulty,
+                    totalQuestions = session.TotalQuestions,
+                    score = 0,
+                    currentQuestion = new
+                    {
+                        number = 1,
+                        total = session.TotalQuestions,
+                        question = firstQuestion.Question,
+                        answers = firstQuestion.Answers
+                    }
+                };
+
+                return System.Text.Json.JsonSerializer.Serialize(response);
             }
             catch (Exception ex)
             {
@@ -99,14 +110,9 @@ namespace ChatbotApi.Plugins
                 // Check if answer was correct
                 var userAnswer = session.UserAnswers.LastOrDefault();
                 var isCorrect = userAnswer?.IsCorrect ?? false;
-
-                var result = isCorrect ? "✅ **Correct!**" : "❌ **Incorrect**";
                 
                 // Add explanation if available
-                if (!string.IsNullOrEmpty(currentQuestion.Explanation))
-                {
-                    result += $"\n💡 {currentQuestion.Explanation}";
-                }
+                var explanation = !string.IsNullOrEmpty(currentQuestion.Explanation) ? currentQuestion.Explanation : null;
 
                 // Get next question or complete quiz
                 var nextQuestion = await _quizSessionService.GetNextQuestionAsync(userId);
@@ -117,9 +123,34 @@ namespace ChatbotApi.Plugins
                     var quizResult = await _quizSessionService.CompleteQuizAsync(userId);
                     if (quizResult != null)
                     {
-                        return result + "\n\n" + FormatQuizCompletion(quizResult);
+                        var completionResponse = new
+                        {
+                            type = "quiz_completed",
+                            isCorrect = isCorrect,
+                            explanation = explanation,
+                            finalResult = new
+                            {
+                                finalScore = quizResult.FinalScore,
+                                totalQuestions = quizResult.TotalQuestions,
+                                percentage = quizResult.Percentage,
+                                grade = quizResult.Grade,
+                                duration = new
+                                {
+                                    minutes = quizResult.Duration.Minutes,
+                                    seconds = quizResult.Duration.Seconds
+                                }
+                            }
+                        };
+                        return System.Text.Json.JsonSerializer.Serialize(completionResponse);
                     }
-                    return result + "\n\n🎉 Quiz completed! Great job!";
+                    
+                    var fallbackResponse = new
+                    {
+                        type = "quiz_completed",
+                        isCorrect = isCorrect,
+                        explanation = explanation
+                    };
+                    return System.Text.Json.JsonSerializer.Serialize(fallbackResponse);
                 }
                 else
                 {
@@ -127,12 +158,22 @@ namespace ChatbotApi.Plugins
                     var updatedSession = await _quizSessionService.GetActiveSessionAsync(userId);
                     var questionNumber = (updatedSession?.CurrentQuestionIndex ?? 0) + 1;
                     
-                    return result + "\n\n" +
-                           $"📊 **Score:** {updatedSession?.Score ?? 0}/{updatedSession?.TotalQuestions ?? 0}\n\n" +
-                           $"**Question {questionNumber}/{updatedSession?.TotalQuestions ?? 0}:**\n" +
-                           $"{nextQuestion.Question}\n\n" +
-                           FormatAnswerOptions(nextQuestion) + "\n\n" +
-                           "💡 Type your answer (A, B, C, or D) to continue!";
+                    var continueResponse = new
+                    {
+                        type = "quiz_continue",
+                        isCorrect = isCorrect,
+                        explanation = explanation,
+                        score = updatedSession?.Score ?? 0,
+                        totalQuestions = updatedSession?.TotalQuestions ?? 0,
+                        currentQuestion = new
+                        {
+                            number = questionNumber,
+                            total = updatedSession?.TotalQuestions ?? 0,
+                            question = nextQuestion.Question,
+                            answers = nextQuestion.Answers
+                        }
+                    };
+                    return System.Text.Json.JsonSerializer.Serialize(continueResponse);
                 }
             }
             catch (Exception ex)
@@ -163,12 +204,22 @@ namespace ChatbotApi.Plugins
                 var questionNumber = session.CurrentQuestionIndex + 1;
                 var categoryText = !string.IsNullOrEmpty(session.Category) ? $" ({session.Category})" : "";
 
-                return $"🎯 **Active Quiz{categoryText}**\n\n" +
-                       $"📊 **Score:** {session.Score}/{session.TotalQuestions} | **Progress:** {questionNumber}/{session.TotalQuestions}\n\n" +
-                       $"**Question {questionNumber}:**\n" +
-                       $"{currentQuestion.Question}\n\n" +
-                       FormatAnswerOptions(currentQuestion) + "\n\n" +
-                       "💡 Type your answer (A, B, C, or D) to continue!";
+                var statusResponse = new
+                {
+                    type = "quiz_status",
+                    category = session.Category,
+                    score = session.Score,
+                    totalQuestions = session.TotalQuestions,
+                    currentQuestion = new
+                    {
+                        number = questionNumber,
+                        total = session.TotalQuestions,
+                        question = currentQuestion.Question,
+                        answers = currentQuestion.Answers
+                    }
+                };
+
+                return System.Text.Json.JsonSerializer.Serialize(statusResponse);
             }
             catch (Exception ex)
             {
@@ -229,23 +280,6 @@ namespace ChatbotApi.Plugins
             }
         }
 
-        private string FormatAnswerOptions(QuizQuestion question)
-        {
-            var options = new List<string>();
-            var letters = new[] { "A", "B", "C", "D" };
-            var answerKeys = new[] { "answer_a", "answer_b", "answer_c", "answer_d" };
-
-            for (int i = 0; i < answerKeys.Length && i < letters.Length; i++)
-            {
-                if (question.Answers.TryGetValue(answerKeys[i], out var answerText) && !string.IsNullOrEmpty(answerText))
-                {
-                    options.Add($"**{letters[i]}.** {answerText}");
-                }
-            }
-
-            return string.Join("\n", options);
-        }
-
         private string ConvertLetterToAnswerKey(string letter)
         {
             return letter switch
@@ -256,34 +290,6 @@ namespace ChatbotApi.Plugins
                 "D" => "answer_d",
                 _ => string.Empty
             };
-        }
-
-        private string FormatQuizCompletion(QuizResult result)
-        {
-            var emoji = result.Percentage switch
-            {
-                >= 90 => "🏆",
-                >= 80 => "🥇",
-                >= 70 => "🥈",
-                >= 60 => "🥉",
-                _ => "📚"
-            };
-
-            var encouragement = result.Percentage switch
-            {
-                >= 90 => "Outstanding! You're a quiz master! 🌟",
-                >= 80 => "Excellent work! Great knowledge! 👏",
-                >= 70 => "Good job! You did well! 👍",
-                >= 60 => "Not bad! Keep learning! 📖",
-                _ => "Keep practicing! You'll get better! 💪"
-            };
-
-            return $"{emoji} **Quiz Complete!**\n\n" +
-                   $"📊 **Final Score:** {result.FinalScore}/{result.TotalQuestions} ({result.Percentage:F1}%)\n" +
-                   $"🎯 **Grade:** {result.Grade}\n" +
-                   $"⏱️ **Time:** {result.Duration.Minutes}m {result.Duration.Seconds}s\n\n" +
-                   $"{encouragement}\n\n" +
-                   "🚀 Ready for another challenge? Say 'start quiz' to play again!";
         }
     }
 }
