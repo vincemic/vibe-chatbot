@@ -5,16 +5,19 @@ A full-stack chatbot application built with Angular frontend and .NET Core backe
 ## Architecture
 
 - **Frontend**: Angular 19 SPA with TypeScript
-- **Backend**: .NET Core 8 Web API
+- **Backend**: .NET Core 8 Web API with singleton service architecture
 - **Real-time Communication**: SignalR
-- **AI Integration**: Azure OpenAI with Microsoft Semantic Kernel
+- **AI Integration**: Azure OpenAI with Microsoft Semantic Kernel and QuizPlugin
 - **Logging**: Serilog (backend) and NGX-Logger (frontend)
 - **Styling**: SCSS with responsive design
+- **Dependency Injection**: Singleton pattern for consistent service instances across all contexts
 
 ## Features
 
 - Real-time chat interface with typing indicators
 - AI-powered responses using Azure OpenAI
+- **Interactive Quiz System** with multiple choice questions, score tracking, and educational explanations
+- Singleton architecture for consistent service dependency injection
 - Mock AI service for demo purposes (when Azure OpenAI is not configured)
 - Comprehensive logging and telemetry
 - Responsive design for desktop and mobile
@@ -115,6 +118,15 @@ node start-app.js
 4. Wait for the AI response (you'll see a typing indicator)
 5. Continue the conversation
 
+### Quiz Features
+
+- **Start a Quiz**: Type "start quiz" or "quiz me" to begin an interactive quiz
+- **Answer Questions**: Choose from multiple choice options (A, B, C, or D)
+- **Track Progress**: See your score and question progress in real-time
+- **Educational Content**: Get detailed explanations for each answer
+- **Final Results**: View your final score, grade, and completion time
+- **Play Again**: Start new quizzes with different questions
+
 ## API Endpoints
 
 - **SignalR Hub**: `/chathub`
@@ -127,13 +139,18 @@ node start-app.js
 Sematic/
 ├── ChatbotApi/                 # .NET Core Web API
 │   ├── Controllers/
+│   │   └── TestController.cs  # Diagnostic endpoints
 │   ├── Hubs/
 │   │   └── ChatHub.cs         # SignalR hub for real-time communication
 │   ├── Models/
 │   │   └── AzureOpenAISettings.cs
 │   ├── Services/
-│   │   └── MockChatCompletionService.cs
-│   └── Program.cs             # Main API configuration
+│   │   ├── MockChatCompletionService.cs
+│   │   ├── QuizApiService.cs  # External quiz API integration
+│   │   └── QuizSessionService.cs # Quiz session management
+│   ├── Plugins/
+│   │   └── QuizPlugin.cs      # Semantic Kernel quiz plugin
+│   └── Program.cs             # Main API configuration with singleton services
 ├── chatbot-frontend/          # Angular SPA
 │   ├── src/
 │   │   ├── app/
@@ -326,6 +343,8 @@ The E2E tests cover:
 - ✅ Special character and emoji handling
 - ✅ Long message support
 - ✅ Accessibility features and keyboard navigation
+- ✅ **Quiz functionality**: Start quiz, answer questions, score tracking, educational explanations
+- ✅ **Singleton architecture**: Consistent service instances across all contexts
 
 ### Testing Strategy
 

@@ -1,6 +1,8 @@
 using Microsoft.SemanticKernel;
 using ChatbotApi.Hubs;
 using ChatbotApi.Models;
+using ChatbotApi.Services;
+using ChatbotApi.Plugins;
 using Serilog;
 
 // Configure Serilog
@@ -37,7 +39,28 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<AzureOpenAISettings>(
     builder.Configuration.GetSection("AzureOpenAI"));
 
-// Add Semantic Kernel
+// Configure Quiz API settings
+builder.Services.Configure<QuizApiSettings>(
+    builder.Configuration.GetSection("QuizApi"));
+
+// ALL SERVICES AS SINGLETONS FOR CONSISTENT DEPENDENCY INJECTION
+// This ensures the same service instances are used across controllers and SignalR hubs
+
+// Add Quiz services - ALL SINGLETONS
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IQuizApiService>(serviceProvider =>
+{
+    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient();
+    var quizSettings = builder.Configuration.GetSection("QuizApi").Get<QuizApiSettings>() ?? new QuizApiSettings();
+    var logger = serviceProvider.GetRequiredService<ILogger<QuizApiService>>();
+    return new QuizApiService(httpClient, quizSettings, logger);
+});
+
+builder.Services.AddSingleton<IQuizSessionStore, QuizSessionStore>();
+builder.Services.AddSingleton<IQuizSessionService, QuizSessionService>();
+
+// Add Semantic Kernel as Singleton
 builder.Services.AddSingleton<Kernel>(serviceProvider =>
 {
     var azureOpenAISettings = builder.Configuration.GetSection("AzureOpenAI").Get<AzureOpenAISettings>();
@@ -59,10 +82,48 @@ builder.Services.AddSingleton<Kernel>(serviceProvider =>
         Log.Warning("Azure OpenAI configuration not found. Using mock responses for demo.");
     }
     
-    return kernelBuilder.Build();
+    var kernel = kernelBuilder.Build();
+    
+    // Add Quiz Plugin using singleton services
+    try
+    {
+        Log.Information("Starting QuizPlugin registration for singleton Kernel");
+        
+        // Get singleton services from container
+        var logger = serviceProvider.GetRequiredService<ILogger<QuizPlugin>>();
+        var quizSessionService = serviceProvider.GetRequiredService<IQuizSessionService>();
+        
+        var quizPlugin = new QuizPlugin(quizSessionService, logger);
+        
+        // Add the plugin and verify it was added
+        var addedPlugin = kernel.Plugins.AddFromObject(quizPlugin, "QuizPlugin");
+        
+        Log.Information("QuizPlugin registered successfully with {FunctionCount} functions", addedPlugin.Count());
+        foreach (var function in addedPlugin)
+        {
+            Log.Information("Registered function: {FunctionName}", function.Name);
+        }
+        
+        // Also log all plugins and their functions for debugging
+        Log.Information("Total plugins in kernel: {PluginCount}", kernel.Plugins.Count);
+        foreach (var plugin in kernel.Plugins)
+        {
+            Log.Information("Plugin '{PluginName}' has {FunctionCount} functions:", plugin.Name, plugin.Count());
+            foreach (var func in plugin)
+            {
+                Log.Information("  Function: {FunctionName}", func.Name);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Failed to register QuizPlugin");
+    }
+    
+    return kernel;
 });
 
-// Add chat completion service
+// Add chat completion service as Singleton
 builder.Services.AddSingleton<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>(serviceProvider =>
 {
     var azureOpenAISettings = builder.Configuration.GetSection("AzureOpenAI").Get<AzureOpenAISettings>();
@@ -80,7 +141,8 @@ builder.Services.AddSingleton<Microsoft.SemanticKernel.ChatCompletion.IChatCompl
     {
         // Use mock service for demo
         var logger = serviceProvider.GetRequiredService<ILogger<ChatbotApi.Services.MockChatCompletionService>>();
-        return new ChatbotApi.Services.MockChatCompletionService(logger);
+        var kernel = serviceProvider.GetRequiredService<Kernel>();
+        return new ChatbotApi.Services.MockChatCompletionService(logger, kernel);
     }
 });
 

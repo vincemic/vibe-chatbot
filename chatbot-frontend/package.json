@@ -12,7 +12,12 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:debug": "playwright test --debug",
-    "test:all": "npm run test && npm run e2e"
+    "e2e:quiz": "playwright test --config=playwright-quiz.config.ts",
+    "e2e:quiz:ui": "playwright test --config=playwright-quiz.config.ts --ui",
+    "e2e:quiz:headed": "playwright test --config=playwright-quiz.config.ts --headed",
+    "e2e:quiz:debug": "playwright test --config=playwright-quiz.config.ts --debug",
+    "test:all": "npm run test && npm run e2e",
+    "test:quiz": "npm run e2e:quiz"
   },
   "prettier": {
     "overrides": [

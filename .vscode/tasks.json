@@ -151,9 +151,63 @@
       "problemMatcher": []
     },
     {
+      "label": "test-quiz",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e:quiz"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-quiz-ui",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e:quiz:ui"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-quiz-debug",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e:quiz:debug"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "test-all",
       "dependsOrder": "sequence",
       "dependsOn": ["test-unit", "test-e2e"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "test-all-with-quiz",
+      "dependsOrder": "sequence",
+      "dependsOn": ["test-unit", "test-e2e", "test-quiz"],
       "group": "test",
       "presentation": {
         "reveal": "always"
