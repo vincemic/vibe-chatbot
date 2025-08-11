@@ -1,0 +1,176 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-api",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/ChatbotApi/ChatbotApi.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "silent"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "start-api",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/ChatbotApi/ChatbotApi.csproj"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": "$msCompile",
+      "isBackground": true,
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "start-frontend",
+      "type": "shell",
+      "command": "npm",
+      "args": ["start"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "isBackground": true,
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "start-full-app",
+      "dependsOrder": "parallel",
+      "dependsOn": ["start-api", "start-frontend"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "install-frontend-deps",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "clean-api",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "clean",
+        "${workspaceFolder}/ChatbotApi/ChatbotApi.csproj"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "test-unit",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test", "--", "--watch=false", "--browsers=ChromeHeadless"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-e2e",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-e2e-ui",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e:ui"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-e2e-debug",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "e2e:debug"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test-all",
+      "dependsOrder": "sequence",
+      "dependsOn": ["test-unit", "test-e2e"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "install-test-deps",
+      "type": "shell",
+      "command": "npx",
+      "args": ["playwright", "install"],
+      "options": {
+        "cwd": "${workspaceFolder}/chatbot-frontend"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      }
+    }
+  ]
+}
