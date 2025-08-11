@@ -23,16 +23,28 @@ namespace ChatbotApi.Services
             _settings = settings;
             _logger = logger;
             
+            // Log the configuration being used
+            _logger.LogInformation("QuizApiService initialized with BaseUrl: {BaseUrl}, HasApiKey: {HasApiKey}", 
+                _settings.BaseUrl, !string.IsNullOrEmpty(_settings.ApiKey));
+            
             // Configure HttpClient in thread-safe manner
             lock (_lock)
             {
                 if (_httpClient.BaseAddress == null)
                 {
-                    _httpClient.BaseAddress = new Uri(_settings.BaseUrl);
+                    var baseUrl = _settings.BaseUrl.TrimEnd('/') + "/";
+                    _httpClient.BaseAddress = new Uri(baseUrl);
                     if (!string.IsNullOrEmpty(_settings.ApiKey))
                     {
                         _httpClient.DefaultRequestHeaders.Add("X-Api-Key", _settings.ApiKey);
+                        _logger.LogInformation("API Key header added to HttpClient");
                     }
+                    else
+                    {
+                        _logger.LogWarning("No API Key provided for QuizAPI service");
+                    }
+                    
+                    _logger.LogInformation("HttpClient configured with BaseAddress: {BaseAddress}", _httpClient.BaseAddress);
                 }
             }
         }
@@ -41,6 +53,9 @@ namespace ChatbotApi.Services
         {
             try
             {
+                _logger.LogInformation("=== Starting GetQuestionsAsync ===");
+                _logger.LogInformation("HttpClient BaseAddress: {BaseAddress}", _httpClient.BaseAddress);
+                
                 var queryParams = new List<string>();
                 
                 if (!string.IsNullOrEmpty(request.Category))
@@ -56,31 +71,42 @@ namespace ChatbotApi.Services
                     queryParams.Add($"tags={Uri.EscapeDataString(request.Tags)}");
 
                 var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
-                var endpoint = $"/questions{queryString}";
+                var endpoint = $"questions{queryString}";
 
-                _logger.LogInformation("Fetching quiz questions from: {Endpoint}", endpoint);
+                _logger.LogInformation("Fetching quiz questions from endpoint: {Endpoint}", endpoint);
+                _logger.LogInformation("Full URL will be: {BaseAddress}{Endpoint}", _httpClient.BaseAddress, endpoint);
+                _logger.LogInformation("Making HTTP GET request...");
 
                 var response = await _httpClient.GetAsync(endpoint);
                 
+                _logger.LogInformation("HTTP Response Status: {StatusCode}", response.StatusCode);
+                _logger.LogInformation("HTTP Response Headers: {Headers}", response.Headers);
+                
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Quiz API request failed with status: {StatusCode}", response.StatusCode);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Quiz API request failed with status: {StatusCode}, Response: {Response}", response.StatusCode, errorContent);
+                    _logger.LogInformation("=== Returning fallback questions ===");
                     return GetFallbackQuestions();
                 }
 
                 var jsonContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("Quiz API response length: {Length} characters", jsonContent?.Length ?? 0);
                 _logger.LogDebug("Quiz API response: {Response}", jsonContent);
 
-                var questions = JsonSerializer.Deserialize<List<QuizQuestion>>(jsonContent, new JsonSerializerOptions
+                var questions = JsonSerializer.Deserialize<List<QuizQuestion>>(jsonContent ?? "", new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
 
+                _logger.LogInformation("Successfully parsed {Count} questions from API", questions?.Count ?? 0);
+                _logger.LogInformation("=== Returning API questions ===");
                 return questions ?? GetFallbackQuestions();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching quiz questions from API");
+                _logger.LogError(ex, "Exception in GetQuestionsAsync: {Message}", ex.Message);
+                _logger.LogInformation("=== Returning fallback questions due to exception ===");
                 return GetFallbackQuestions();
             }
         }
@@ -89,7 +115,7 @@ namespace ChatbotApi.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("/categories");
+                var response = await _httpClient.GetAsync("categories");
                 
                 if (!response.IsSuccessStatusCode)
                 {

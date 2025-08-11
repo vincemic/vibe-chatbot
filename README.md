@@ -61,7 +61,23 @@ cd Sematic
 
    **Note**: If you don't have Azure OpenAI configured, the application will use a mock AI service for demonstration purposes.
 
-3. Restore dependencies:
+3. **QuizAPI Configuration**: The application integrates with QuizAPI.io for real quiz questions. Configure your API key using user secrets:
+
+   ```bash
+   # Set QuizAPI.io credentials (replace with your actual API key)
+   dotnet user-secrets set "QuizApi:BaseUrl" "https://quizapi.io/api/v1"
+   dotnet user-secrets set "QuizApi:ApiKey" "your-quizapi-io-api-key"
+   ```
+
+   **Getting a QuizAPI.io API Key:**
+   - Visit [QuizAPI.io](https://quizapi.io/)
+   - Sign up for a free account
+   - Get your API key from the dashboard
+   - Free tier includes 100 requests per day
+
+   **Note**: If no QuizAPI key is configured, the application will use fallback quiz questions for demonstration.
+
+4. Restore dependencies:
    ```bash
    dotnet restore
    ```
@@ -249,7 +265,13 @@ The Angular app is configured to connect to:
    - Run `dotnet restore` to restore NuGet packages
    - Ensure .NET 8 SDK is installed
 
-5. **Test Failures**
+5. **QuizAPI Integration Issues**
+   - Verify your QuizAPI.io API key is set in user secrets
+   - Check that the BaseUrl is correctly set to `https://quizapi.io/api/v1`
+   - The app will fall back to demo questions if the API is unreachable
+   - Ensure your API key has available quota (free tier: 100 requests/day)
+
+6. **Test Failures**
    - Ensure both backend and frontend are not running when starting E2E tests
    - Check that ports 4200 and 7271 are available
    - Run `npx playwright install` to ensure browser dependencies are installed
@@ -353,6 +375,27 @@ The E2E tests cover:
 - **E2E Tests**: Test complete user workflows and scenarios
 - **Accessibility Tests**: Ensure compliance with accessibility standards
 - **Responsive Tests**: Verify functionality across different devices
+
+## Technical Notes
+
+### QuizAPI Integration
+
+The application integrates with QuizAPI.io for real quiz questions. Key implementation details:
+
+- **URL Construction**: Fixed HttpClient BaseAddress handling for proper API endpoint assembly
+  - BaseAddress: `https://quizapi.io/api/v1/` (with trailing slash)
+  - Relative paths: `questions`, `categories` (without leading slash)
+  - Results in correct URLs: `https://quizapi.io/api/v1/questions`
+
+- **Authentication**: Uses X-Api-Key header for API authentication
+- **Fallback Strategy**: Returns demo questions if external API is unavailable
+- **Configuration**: API key stored securely in user secrets (not in source control)
+
+### Architecture Decisions
+
+- **Singleton Services**: All services registered as singletons for consistent dependency injection across SignalR hubs and controllers
+- **Configuration Management**: User secrets for sensitive data, appsettings.json for non-sensitive configuration
+- **Error Handling**: Graceful fallbacks ensure application remains functional even when external services are unavailable
 
 ## License
 
