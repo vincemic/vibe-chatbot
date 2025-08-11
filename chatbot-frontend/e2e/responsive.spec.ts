@@ -46,9 +46,9 @@ test.describe('Responsive Design Tests', () => {
     await expect(page.locator('.message-input')).toBeVisible();
     await expect(page.locator('.send-button')).toBeVisible();
     
-    // Test touch interaction
+    // Test touch interaction (use click for cross-browser compatibility)
     await page.fill('.message-input', 'Mobile test');
-    await page.tap('.send-button');
+    await page.click('.send-button');
     
     await expect(page.locator('.message.user').last()).toContainText('Mobile test');
   });

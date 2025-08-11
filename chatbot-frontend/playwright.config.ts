@@ -71,16 +71,20 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'cd ../ChatbotApi && dotnet run',
+      command: 'dotnet run',
+      cwd: '../ChatbotApi',
       port: 7271,
       reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      timeout: 60000,
+      env: {
+        'ASPNETCORE_ENVIRONMENT': 'Development'
+      }
     },
     {
-      command: 'npm run start',
+      command: 'npm run start -- --port 4200',
       port: 4200,
       reuseExistingServer: !process.env.CI,
-      timeout: 30000,
+      timeout: 60000,
     },
   ],
 });

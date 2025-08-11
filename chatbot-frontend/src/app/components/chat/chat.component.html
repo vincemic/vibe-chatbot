@@ -12,7 +12,9 @@
     <div *ngFor="let message of messages" 
          class="message" 
          [class.user-message]="!message.isFromBot" 
-         [class.bot-message]="message.isFromBot">
+         [class.user]="!message.isFromBot"
+         [class.bot-message]="message.isFromBot"
+         [class.ai]="message.isFromBot">
       <div class="message-content">
         <div class="message-header">
           <span class="message-user">{{ message.user }}</span>
