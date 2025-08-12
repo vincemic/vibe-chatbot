@@ -1,0 +1,32 @@
+{
+  "name": "sematic-chatbot",
+  "version": "1.0.0",
+  "description": "Full-stack chatbot application with Angular frontend and .NET Core backend",
+  "scripts": {
+    "start": "node start-app.js",
+    "test:config": "playwright test config-validation.spec.ts --headed",
+    "test:e2e": "playwright test --headed",
+    "test:ci": "playwright test",
+    "install-playwright": "npx playwright install",
+    "dev:frontend": "cd chatbot-frontend && npm start",
+    "dev:backend": "cd ChatbotApi && dotnet run",
+    "build:frontend": "cd chatbot-frontend && npm run build",
+    "build:backend": "cd ChatbotApi && dotnet build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "chatbot",
+    "angular",
+    "dotnet",
+    "azure-openai",
+    "signalr",
+    "semantic-kernel"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

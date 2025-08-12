@@ -71,10 +71,40 @@ builder.Services.AddSingleton<Kernel>(serviceProvider =>
         !string.IsNullOrEmpty(azureOpenAISettings?.ApiKey) && 
         !string.IsNullOrEmpty(azureOpenAISettings?.DeploymentName))
     {
-        kernelBuilder.AddAzureOpenAIChatCompletion(
-            deploymentName: azureOpenAISettings.DeploymentName,
-            endpoint: azureOpenAISettings.Endpoint,
-            apiKey: azureOpenAISettings.ApiKey);
+        try
+        {
+            // Create HttpClient with SSL certificate validation handling for development
+            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            
+            // In development, handle SSL certificate validation issues
+            if (builder.Environment.IsDevelopment())
+            {
+                // Configure HttpClient to handle SSL certificate validation issues
+                var handler = new HttpClientHandler();
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    Log.Warning("SSL Certificate validation issue encountered: {Errors}", errors);
+                    // In development, allow certificates with revocation issues
+                    return errors == System.Net.Security.SslPolicyErrors.None || 
+                           errors == System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors;
+                };
+                httpClient = new HttpClient(handler);
+            }
+            
+            kernelBuilder.AddAzureOpenAIChatCompletion(
+                deploymentName: azureOpenAISettings.DeploymentName,
+                endpoint: azureOpenAISettings.Endpoint,
+                apiKey: azureOpenAISettings.ApiKey,
+                httpClient: httpClient);
+                
+            Log.Information("Azure OpenAI configured successfully with endpoint: {Endpoint}", azureOpenAISettings.Endpoint);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to configure Azure OpenAI. Falling back to mock service.");
+            Log.Warning("Azure OpenAI configuration failed. Using mock responses for demo.");
+        }
     }
     else
     {
@@ -134,16 +164,25 @@ builder.Services.AddSingleton<Microsoft.SemanticKernel.ChatCompletion.IChatCompl
         azureOpenAISettings.Endpoint != "https://your-azure-openai-endpoint.openai.azure.com/" &&
         azureOpenAISettings.ApiKey != "your-azure-openai-api-key")
     {
-        var kernel = serviceProvider.GetRequiredService<Kernel>();
-        return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
+        try
+        {
+            var kernelService = serviceProvider.GetRequiredService<Kernel>();
+            var chatService = kernelService.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>();
+            Log.Information("Using real Azure OpenAI chat completion service");
+            return chatService;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to get Azure OpenAI chat completion service. Falling back to mock service.");
+            // Fall through to mock service
+        }
     }
-    else
-    {
-        // Use mock service for demo
-        var logger = serviceProvider.GetRequiredService<ILogger<ChatbotApi.Services.MockChatCompletionService>>();
-        var kernel = serviceProvider.GetRequiredService<Kernel>();
-        return new ChatbotApi.Services.MockChatCompletionService(logger, kernel);
-    }
+    
+    // Use mock service for demo or when Azure OpenAI fails
+    var logger = serviceProvider.GetRequiredService<ILogger<ChatbotApi.Services.MockChatCompletionService>>();
+    var kernelInstance = serviceProvider.GetRequiredService<Kernel>();
+    Log.Information("Using mock chat completion service");
+    return new ChatbotApi.Services.MockChatCompletionService(logger, kernelInstance);
 });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

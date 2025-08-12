@@ -195,7 +195,7 @@ test.describe('Quiz API Integration', () => {
     
     // Check that no API key is exposed in the frontend
     const pageContent = await page.content();
-    expect(pageContent).not.toContain('4o4FJfOlGNol4HcZkONjnX6dBK8vV5MEV7CyxojW');
+    expect(pageContent).not.toContain('your-actual-api-key-here'); // Replace with actual key during testing
   });
 
   test('should track quiz statistics accurately with real API data', async ({ page }) => {
