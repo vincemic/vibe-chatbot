@@ -86,12 +86,20 @@ namespace ChatbotApi.Services
 
                 var currentQuestion = session.Questions[session.CurrentQuestionIndex];
                 
+                _logger.LogInformation("Evaluating answer for user: {UserId}, Question: {QuestionId}, Selected: {SelectedAnswer}", 
+                    userId, currentQuestion.Id, selectedAnswer);
+                
                 // Determine if answer is correct
                 bool isCorrect = IsAnswerCorrect(currentQuestion, selectedAnswer);
                 
                 if (isCorrect)
                 {
                     session.Score++;
+                    _logger.LogInformation("Correct answer! Score increased to {Score}", session.Score);
+                }
+                else
+                {
+                    _logger.LogInformation("Incorrect answer. Score remains {Score}", session.Score);
                 }
 
                 // Record the answer
@@ -200,20 +208,46 @@ namespace ChatbotApi.Services
 
         private bool IsAnswerCorrect(QuizQuestion question, string selectedAnswer)
         {
-            // Handle different answer formats
-            if (question.CorrectAnswers.TryGetValue($"{selectedAnswer}_correct", out var correctValue))
+            try
             {
-                return correctValue.Equals("true", StringComparison.OrdinalIgnoreCase);
-            }
+                // Check correct_answers dictionary first (from QuizAPI)
+                if (question.CorrectAnswers != null && question.CorrectAnswers.Count > 0)
+                {
+                    var correctKey = $"{selectedAnswer}_correct";
+                    if (question.CorrectAnswers.TryGetValue(correctKey, out var correctValue))
+                    {
+                        var isCorrect = correctValue.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        _logger.LogDebug("Answer check for {SelectedAnswer}: {CorrectKey} = {CorrectValue}, IsCorrect: {IsCorrect}", 
+                            selectedAnswer, correctKey, correctValue, isCorrect);
+                        return isCorrect;
+                    }
+                }
 
-            // Fallback for direct answer matching
-            if (!string.IsNullOrEmpty(question.CorrectAnswer))
+                // Fallback for direct answer matching
+                if (!string.IsNullOrEmpty(question.CorrectAnswer))
+                {
+                    var isCorrect = selectedAnswer.Equals(question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
+                    _logger.LogDebug("Direct answer check: {SelectedAnswer} vs {CorrectAnswer}, IsCorrect: {IsCorrect}", 
+                        selectedAnswer, question.CorrectAnswer, isCorrect);
+                    return isCorrect;
+                }
+
+                // Log available correct answers for debugging
+                var availableKeys = question.CorrectAnswers?.Keys.ToArray() ?? Array.Empty<string>();
+                _logger.LogWarning("Could not determine correct answer for question {QuestionId}. Available correct_answers: {CorrectAnswers}", 
+                    question.Id, string.Join(", ", availableKeys));
+
+                // Default fallback - assume answer_a is correct for demo purposes
+                var defaultCorrect = selectedAnswer.Equals("answer_a", StringComparison.OrdinalIgnoreCase);
+                _logger.LogDebug("Using default fallback: {SelectedAnswer} vs answer_a, IsCorrect: {IsCorrect}", 
+                    selectedAnswer, defaultCorrect);
+                return defaultCorrect;
+            }
+            catch (Exception ex)
             {
-                return selectedAnswer.Equals(question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
+                _logger.LogError(ex, "Error checking answer correctness for question {QuestionId}", question.Id);
+                return false;
             }
-
-            // Default fallback - assume answer_a is correct for demo purposes
-            return selectedAnswer.Equals("answer_a", StringComparison.OrdinalIgnoreCase);
         }
 
         private string CalculateGrade(int score, int total)

@@ -1,28 +1,34 @@
 # Semantic Chatbot Application
 
-A full-stack chatbot application built with Angular frontend and .NET Core backend, featuring real-time communication via SignalR and AI-powered responses using Azure OpenAI and Microsoft Semantic Kernel.
+A sophisticated full-stack chatbot application built with Angular frontend and .NET Core backend, featuring real-time communication via SignalR and AI-powered responses using Azure OpenAI with Microsoft Semantic Kernel.
 
-## Architecture
+## 🏗️ Architecture
 
-- **Frontend**: Angular 19 SPA with TypeScript
-- **Backend**: .NET Core 8 Web API with singleton service architecture
-- **Real-time Communication**: SignalR
-- **AI Integration**: Azure OpenAI with Microsoft Semantic Kernel and QuizPlugin
-- **Logging**: Serilog (backend) and NGX-Logger (frontend)
-- **Styling**: SCSS with responsive design
-- **Dependency Injection**: Singleton pattern for consistent service instances across all contexts
+- **Frontend**: Angular 19 SPA with TypeScript, SignalR client, responsive design, NGX-Logger telemetry
+- **Backend**: .NET Core 8 Web API with Azure OpenAI, Semantic Kernel, SignalR hub, Serilog logging
+- **AI Integration**: Azure OpenAI with QuizPlugin architecture and intelligent fallback mechanisms
+- **Real-time Communication**: SignalR with automatic reconnection and comprehensive error handling
+- **Testing**: Playwright E2E tests covering functionality, responsiveness, accessibility, and SignalR integration
+- **Dependency Injection**: Singleton pattern for consistent service instances across controllers and SignalR hubs
 
-## Features
+## ✨ Features
 
-- Real-time chat interface with typing indicators
-- AI-powered responses using Azure OpenAI
-- **Interactive Quiz System** with multiple choice questions, score tracking, and educational explanations
-- Singleton architecture for consistent service dependency injection
-- Mock AI service for demo purposes (when Azure OpenAI is not configured)
-- Comprehensive logging and telemetry
-- Responsive design for desktop and mobile
-- Automatic reconnection handling
-- Clean, modern UI with message history
+- **Real-time Chat Interface** with typing indicators and message history
+- **Azure OpenAI Integration** with gpt-4o deployment and function calling
+- **Advanced Quiz System** with interactive features:
+  - Multi-category quiz selection (Programming, JavaScript, HTML, CSS, Linux, DevOps, etc.)
+  - Multiple choice questions with A/B/C/D answer recognition
+  - Real-time score tracking and progress indicators
+  - Educational explanations for incorrect answers
+  - Final grade calculation and completion metrics
+  - Seamless fallback to demo questions when external API unavailable
+- **Singleton Architecture** for consistent dependency injection across SignalR hubs and controllers
+- **Intelligent Error Handling** with graceful fallbacks and comprehensive logging
+- **Mock AI Service** for demonstration when Azure OpenAI is not configured
+- **Responsive Design** optimized for desktop, tablet, and mobile devices
+- **Automatic Reconnection** handling for robust SignalR connections
+- **JSON Response Formatting** allowing natural AI conversation flow
+- **Comprehensive Testing** with Playwright E2E tests covering all functionality
 
 ## Prerequisites
 
@@ -43,17 +49,28 @@ cd Sematic
 ### 2. Backend Configuration
 
 1. Navigate to the ChatbotApi directory:
+   
    ```bash
    cd ChatbotApi
    ```
 
-2. Configure Azure OpenAI settings in `appsettings.json`:
+2. **Configure Azure OpenAI using User Secrets (Recommended):**
+   
+   ```bash
+   # Set Azure OpenAI credentials securely
+   dotnet user-secrets set "AzureOpenAI:Endpoint" "https://your-azure-openai-endpoint.openai.azure.com/"
+   dotnet user-secrets set "AzureOpenAI:ApiKey" "your-azure-openai-api-key"
+   dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o"
+   ```
+
+   **Alternative**: Configure in `appsettings.json` (not recommended for production):
+   
    ```json
    {
      "AzureOpenAI": {
        "Endpoint": "https://your-azure-openai-endpoint.openai.azure.com/",
        "ApiKey": "your-azure-openai-api-key",
-       "DeploymentName": "your-deployment-name",
+       "DeploymentName": "gpt-4o",
        "ApiVersion": "2024-02-01"
      }
    }
@@ -78,6 +95,7 @@ cd Sematic
    **Note**: If no QuizAPI key is configured, the application will use fallback quiz questions for demonstration.
 
 4. Restore dependencies:
+   
    ```bash
    dotnet restore
    ```
@@ -126,67 +144,108 @@ cd Sematic
 node start-app.js
 ```
 
-## Usage
+## 🚀 Usage
 
 1. Open your browser and navigate to `http://localhost:4200`
 2. The chatbot will greet you with "Hello! I'm your AI assistant. How can I help you today?"
 3. Type your message in the input field and press Enter or click Send
 4. Wait for the AI response (you'll see a typing indicator)
-5. Continue the conversation
+5. Continue the conversation naturally - the AI supports general chat and quiz functionality
 
-### Quiz Features
+### 🧠 Enhanced Quiz Features
 
-- **Start a Quiz**: Type "start quiz" or "quiz me" to begin an interactive quiz
-- **Answer Questions**: Choose from multiple choice options (A, B, C, or D)
-- **Track Progress**: See your score and question progress in real-time
-- **Educational Content**: Get detailed explanations for each answer
-- **Final Results**: View your final score, grade, and completion time
-- **Play Again**: Start new quizzes with different questions
+- **Start a Quiz**:
+  - Type "start quiz" to see available categories and select one
+  - Or type "start programming quiz" to directly start a specific category
+  - Available categories: Programming, JavaScript, HTML, CSS, Linux, DevOps, Docker, SQL, and more
 
-## API Endpoints
+- **Interactive Gameplay**:
+  - Answer questions by typing single letters (A, B, C, or D)
+  - System recognizes both uppercase and lowercase answers
+  - Get immediate feedback on your answers
 
-- **SignalR Hub**: `/chathub`
-  - `SendMessage(user, message)`: Send a message to the AI
-  - `ReceiveMessage(user, message)`: Receive messages from the AI
+- **Educational Experience**:
+  - Receive detailed explanations when you answer incorrectly
+  - See the correct answer with full explanation
+  - Track your progress throughout the quiz
 
-## Project Structure
+- **Results & Analytics**:
+  - View your final score and percentage
+  - Get a letter grade (A, B, C, D, or F)
+  - See total completion time
+  - Option to start a new quiz in any category
 
-```
+### 💡 AI Assistant Features
+
+- **Natural Conversation**: Engage in general conversation on any topic
+- **Function Calling**: The AI can call quiz functions based on your natural language requests
+- **Context Awareness**: Maintains conversation context throughout the session
+- **Fallback Responses**: Graceful handling when external services are unavailable
+
+## 🔧 Technical Highlights
+
+### Recent Enhancements
+
+- **Azure OpenAI Function Calling**: Implemented `ToolCallBehavior.AutoInvokeKernelFunctions` for seamless AI-to-plugin communication
+- **Enhanced Quiz UX**: Category selection workflow with intelligent answer recognition
+- **JSON Response Formatting**: Natural AI conversation flow with structured data parsing
+- **Comprehensive Error Handling**: Multi-layer fallback mechanisms with detailed logging
+- **Singleton Architecture**: Consistent dependency injection across SignalR hubs and controllers
+- **SSL Certificate Handling**: Custom validation for development environments
+- **Thread-Safe Services**: ConcurrentDictionary and locking patterns for quiz session management
+
+### Key Technical Decisions
+
+- **gpt-4o Deployment**: Latest Azure OpenAI model with advanced function calling capabilities
+- **QuizPlugin Architecture**: Semantic Kernel plugin with 6 specialized functions
+- **User Secrets**: Secure configuration management for API keys and sensitive data
+- **Comprehensive Logging**: Serilog structured logging with multiple levels and outputs
+- **Playwright Testing**: Full E2E test coverage including responsive and accessibility testing
+
+## 📁 Project Structure
+
+```text
 Sematic/
-├── ChatbotApi/                 # .NET Core Web API
+├── ChatbotApi/                     # .NET Core 8 Web API
 │   ├── Controllers/
-│   │   └── TestController.cs  # Diagnostic endpoints
+│   │   └── TestController.cs      # Diagnostic endpoints
 │   ├── Hubs/
-│   │   └── ChatHub.cs         # SignalR hub for real-time communication
+│   │   └── ChatHub.cs             # SignalR hub with enhanced system prompts
 │   ├── Models/
-│   │   └── AzureOpenAISettings.cs
+│   │   ├── AzureOpenAISettings.cs # Configuration models
+│   │   └── QuizModels.cs          # Quiz domain models
 │   ├── Services/
-│   │   ├── MockChatCompletionService.cs
-│   │   ├── QuizApiService.cs  # External quiz API integration
-│   │   └── QuizSessionService.cs # Quiz session management
+│   │   ├── MockChatCompletionService.cs  # Fallback AI service
+│   │   ├── QuizApiService.cs            # External quiz API integration
+│   │   ├── QuizSessionService.cs        # Quiz session management
+│   │   └── QuizSessionStore.cs          # Thread-safe session storage
 │   ├── Plugins/
-│   │   └── QuizPlugin.cs      # Semantic Kernel quiz plugin
-│   └── Program.cs             # Main API configuration with singleton services
-├── chatbot-frontend/          # Angular SPA
+│   │   └── QuizPlugin.cs          # Semantic Kernel quiz plugin (6 functions)
+│   └── Program.cs                 # Main API configuration with singleton services
+├── chatbot-frontend/               # Angular 19 SPA
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── components/
-│   │   │   │   └── chat/      # Chat component
+│   │   │   │   └── chat/          # Chat component with typing indicators
 │   │   │   └── services/
-│   │   │       └── chat.service.ts
-│   │   └── styles.scss
-│   ├── e2e/                   # Playwright E2E tests
-│   │   ├── chatbot.spec.ts    # Core functionality tests
-│   │   ├── responsive.spec.ts # Responsive design tests
-│   │   ├── signalr.spec.ts    # SignalR integration tests
-│   │   ├── accessibility.spec.ts # Accessibility tests
-│   │   └── test-setup.ts      # Test utilities and fixtures
-│   ├── playwright.config.ts   # Playwright configuration
-├── .vscode/                   # VS Code configuration
-│   ├── launch.json           # Debug configurations
-│   └── tasks.json            # Build tasks
-├── start-app.js              # Development start script
-└── README.md
+│   │   │       └── chat.service.ts # SignalR client with auto-reconnection
+│   │   └── styles.scss            # Responsive SCSS styling
+│   ├── e2e/                       # Playwright E2E test suite
+│   │   ├── chatbot.spec.ts        # Core functionality tests
+│   │   ├── responsive.spec.ts     # Responsive design tests
+│   │   ├── signalr.spec.ts        # SignalR integration tests
+│   │   ├── accessibility.spec.ts  # Accessibility compliance tests
+│   │   ├── quiz.spec.ts           # Quiz functionality tests
+│   │   └── test-setup.ts          # Test utilities and fixtures
+│   ├── playwright.config.ts       # Multi-browser test configuration
+├── .vscode/                       # VS Code workspace configuration
+│   ├── launch.json               # Multi-configuration debugging
+│   └── tasks.json                # Build and test automation
+├── .github/
+│   └── copilot-instructions.md   # AI development assistant guidelines
+├── start-app.js                  # Development startup script
+├── stop-all-processes.ps1        # Process cleanup utilities
+└── README.md                     # This comprehensive documentation
 ```
 
 ## Configuration

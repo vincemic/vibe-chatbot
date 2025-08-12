@@ -21,12 +21,18 @@ namespace ChatbotApi.Plugins
         [Description("Start a new quiz game for the user with optional category and difficulty")]
         public async Task<string> StartQuizAsync(
             [Description("The user ID to start the quiz for")] string userId,
-            [Description("Quiz category (e.g., 'JavaScript', 'HTML', 'CSS', 'Python', 'SQL'). Leave empty for random category.")] string? category = null,
+            [Description("Quiz category (e.g., 'JavaScript', 'HTML', 'CSS', 'Python', 'SQL'). Leave empty to show available categories first.")] string? category = null,
             [Description("Quiz difficulty level: 'Easy', 'Medium', or 'Hard'. Leave empty for mixed difficulty.")] string? difficulty = null,
             [Description("Number of questions (1-20, default is 5)")] int questionCount = 5)
         {
             try
             {
+                // If no category is provided, show available categories first
+                if (string.IsNullOrEmpty(category))
+                {
+                    return await GetAvailableCategoriesAsync();
+                }
+
                 _logger.LogInformation("Starting quiz for user: {UserId}, Category: {Category}, Difficulty: {Difficulty}", 
                     userId, category ?? "Any", difficulty ?? "Mixed");
 
@@ -74,10 +80,10 @@ namespace ChatbotApi.Plugins
         }
 
         [KernelFunction("SubmitAnswerAsync")]
-        [Description("Submit an answer for the current quiz question")]
+        [Description("Submit an answer for the current quiz question. Call this function when the user provides a single letter (A, B, C, or D) as their response, as this indicates they are answering a quiz question.")]
         public async Task<string> SubmitAnswerAsync(
             [Description("The user ID submitting the answer")] string userId,
-            [Description("The selected answer (A, B, C, or D)")] string answer)
+            [Description("The selected answer - single letter: A, B, C, or D (case insensitive)")] string answer)
         {
             try
             {
@@ -111,6 +117,9 @@ namespace ChatbotApi.Plugins
                 var userAnswer = session.UserAnswers.LastOrDefault();
                 var isCorrect = userAnswer?.IsCorrect ?? false;
                 
+                // Get the correct answer information
+                var correctAnswerInfo = GetCorrectAnswerInfo(currentQuestion);
+                
                 // Add explanation if available
                 var explanation = !string.IsNullOrEmpty(currentQuestion.Explanation) ? currentQuestion.Explanation : null;
 
@@ -128,6 +137,7 @@ namespace ChatbotApi.Plugins
                             type = "quiz_completed",
                             isCorrect = isCorrect,
                             explanation = explanation,
+                            correctAnswer = !isCorrect ? correctAnswerInfo : null,
                             finalResult = new
                             {
                                 finalScore = quizResult.FinalScore,
@@ -148,7 +158,8 @@ namespace ChatbotApi.Plugins
                     {
                         type = "quiz_completed",
                         isCorrect = isCorrect,
-                        explanation = explanation
+                        explanation = explanation,
+                        correctAnswer = !isCorrect ? correctAnswerInfo : null
                     };
                     return System.Text.Json.JsonSerializer.Serialize(fallbackResponse);
                 }
@@ -163,6 +174,7 @@ namespace ChatbotApi.Plugins
                         type = "quiz_continue",
                         isCorrect = isCorrect,
                         explanation = explanation,
+                        correctAnswer = !isCorrect ? correctAnswerInfo : null,
                         score = updatedSession?.Score ?? 0,
                         totalQuestions = updatedSession?.TotalQuestions ?? 0,
                         currentQuestion = new
@@ -280,6 +292,59 @@ namespace ChatbotApi.Plugins
             }
         }
 
+        [KernelFunction("StartQuizWithCategoryAsync")]
+        [Description("Start a quiz with a specific category selected by the user")]
+        public async Task<string> StartQuizWithCategoryAsync(
+            [Description("The user ID to start the quiz for")] string userId,
+            [Description("The selected quiz category")] string category,
+            [Description("Quiz difficulty level: 'Easy', 'Medium', or 'Hard'. Leave empty for mixed difficulty.")] string? difficulty = null,
+            [Description("Number of questions (1-20, default is 5)")] int questionCount = 5)
+        {
+            try
+            {
+                _logger.LogInformation("Starting quiz for user: {UserId}, Category: {Category}, Difficulty: {Difficulty}", 
+                    userId, category, difficulty ?? "Mixed");
+
+                var request = new QuizStartRequest
+                {
+                    Category = category,
+                    Difficulty = difficulty,
+                    Limit = Math.Min(Math.Max(questionCount, 1), 20) // Ensure between 1-20
+                };
+
+                var session = await _quizSessionService.StartQuizAsync(userId, request);
+                var firstQuestion = await _quizSessionService.GetCurrentQuestionAsync(userId);
+
+                if (firstQuestion == null)
+                {
+                    return "Sorry, I couldn't start the quiz. No questions are available for that category right now.";
+                }
+
+                var categoryText = !string.IsNullOrEmpty(session.Category) ? $" in {session.Category}" : "";
+                var difficultyText = !string.IsNullOrEmpty(session.Difficulty) ? $" ({session.Difficulty} level)" : "";
+
+                // Format the answers from the dictionary
+                var answerA = firstQuestion.Answers.TryGetValue("answer_a", out var a) ? a : "Option A";
+                var answerB = firstQuestion.Answers.TryGetValue("answer_b", out var b) ? b : "Option B";
+                var answerC = firstQuestion.Answers.TryGetValue("answer_c", out var c) ? c : "Option C";
+                var answerD = firstQuestion.Answers.TryGetValue("answer_d", out var d) ? d : "Option D";
+
+                return $"🎯 **Quiz Started{categoryText}{difficultyText}!**\n\n" +
+                       $"**Question {session.CurrentQuestionIndex + 1} of {session.TotalQuestions}:**\n" +
+                       $"{firstQuestion.Question}\n\n" +
+                       $"**A)** {answerA}\n" +
+                       $"**B)** {answerB}\n" +
+                       $"**C)** {answerC}\n" +
+                       $"**D)** {answerD}\n\n" +
+                       "Type A, B, C, or D to answer!";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting quiz with category {Category}: {Error}", category, ex.Message);
+                return $"Sorry, I couldn't start a quiz for '{category}'. Try saying 'quiz categories' to see available options.";
+            }
+        }
+
         private string ConvertLetterToAnswerKey(string letter)
         {
             return letter switch
@@ -290,6 +355,61 @@ namespace ChatbotApi.Plugins
                 "D" => "answer_d",
                 _ => string.Empty
             };
+        }
+
+        private object? GetCorrectAnswerInfo(QuizQuestion question)
+        {
+            try
+            {
+                // Find which answer is correct
+                string? correctKey = null;
+                string? correctText = null;
+                
+                // Check CorrectAnswers dictionary first
+                if (question.CorrectAnswers != null)
+                {
+                    foreach (var kvp in question.CorrectAnswers)
+                    {
+                        if (kvp.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
+                        {
+                            correctKey = kvp.Key.Replace("_correct", ""); // Remove "_correct" suffix
+                            break;
+                        }
+                    }
+                }
+                
+                // Get the correct answer text
+                if (!string.IsNullOrEmpty(correctKey) && question.Answers.TryGetValue(correctKey, out var answerText))
+                {
+                    correctText = answerText;
+                }
+                
+                // Convert answer key to letter (answer_a -> A)
+                var correctLetter = correctKey switch
+                {
+                    "answer_a" => "A",
+                    "answer_b" => "B", 
+                    "answer_c" => "C",
+                    "answer_d" => "D",
+                    _ => null
+                };
+                
+                if (!string.IsNullOrEmpty(correctLetter) && !string.IsNullOrEmpty(correctText))
+                {
+                    return new
+                    {
+                        letter = correctLetter,
+                        text = correctText
+                    };
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting correct answer info for question {QuestionId}", question.Id);
+                return null;
+            }
         }
     }
 }

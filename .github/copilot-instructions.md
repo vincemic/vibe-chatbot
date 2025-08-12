@@ -209,6 +209,76 @@ cd chatbot-frontend && npm run e2e
 - **Run Tests**: `Ctrl+Shift+P` → "Tasks: Run Task" → "Test All"
 - **Stop All Processes**: Run `stop-all-processes.ps1`
 
+## 🔄 CRITICAL: Process Management & Directory Verification
+
+### ⚠️ MANDATORY Pre-Testing Steps
+**ALWAYS follow these steps before starting any testing or debugging session:**
+
+#### 1. Stop All Existing Processes
+```powershell
+# Kill all dotnet processes (backend)
+Get-Process -Name "*dotnet*" -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Kill all Node.js processes (frontend)
+Get-Process -Name "*node*" -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Kill specific processes if needed
+taskkill /F /IM "dotnet.exe" /T
+taskkill /F /IM "node.exe" /T
+```
+
+#### 2. Verify Working Directory Before Starting Processes
+**ALWAYS verify you are in the correct directory before running commands:**
+
+```powershell
+# For Backend - MUST be in ChatbotApi directory
+cd c:\repos\Sematic\ChatbotApi
+pwd  # Verify current directory shows: C:\repos\Sematic\ChatbotApi
+dotnet run
+
+# For Frontend - MUST be in chatbot-frontend directory  
+cd c:\repos\Sematic\chatbot-frontend
+pwd  # Verify current directory shows: C:\repos\Sematic\chatbot-frontend
+npm start
+```
+
+#### 3. Process Restart Checklist
+**Before every test session, execute in this order:**
+
+1. **Stop all processes**: `Get-Process -Name "*dotnet*","*node*" | Stop-Process -Force`
+2. **Verify directories**: Use `pwd` or `Get-Location` to confirm correct paths
+3. **Start backend**: Navigate to `ChatbotApi` folder, then `dotnet run`
+4. **Wait for backend startup**: Look for "Application started" message
+5. **Start frontend**: Navigate to `chatbot-frontend` folder, then `npm start`
+6. **Verify connections**: Check for SignalR connection in backend logs
+
+#### 4. Directory Navigation Commands
+```powershell
+# Quick navigation shortcuts
+Set-Location c:\repos\Sematic\ChatbotApi          # Backend
+Set-Location c:\repos\Sematic\chatbot-frontend    # Frontend
+
+# Always verify location before running processes
+Get-Location  # Should show the expected directory path
+```
+
+#### 5. Process Verification
+```powershell
+# Check if processes are running
+Get-Process -Name "*dotnet*" -ErrorAction SilentlyContinue
+Get-Process -Name "*node*" -ErrorAction SilentlyContinue
+
+# Check ports in use
+netstat -ano | findstr ":7271"  # Backend HTTPS
+netstat -ano | findstr ":4200"  # Frontend
+```
+
+### 🚨 Common Directory Mistakes to Avoid
+- **Never run `dotnet run` from the root `Sematic` directory** - Always navigate to `ChatbotApi` first
+- **Never run `npm start` from the root `Sematic` directory** - Always navigate to `chatbot-frontend` first
+- **Always use absolute paths** when navigating: `cd c:\repos\Sematic\ChatbotApi`
+- **Always verify directory** with `pwd` or `Get-Location` before starting processes
+
 ## 🔧 Configuration Management
 
 ### User Secrets (Required for Azure OpenAI)
@@ -226,6 +296,11 @@ dotnet user-secrets set "AzureOpenAI:DeploymentName" "your-deployment"
 
 ## 🚨 Common Troubleshooting Patterns
 
+### Process Management Issues ⚠️ MOST COMMON
+- **Symptom**: Commands fail with "project not found" or processes won't start
+- **Solution**: ALWAYS follow the Process Management & Directory Verification steps above
+- **Root Cause**: Running commands from wrong directory or processes conflicting
+
 ### SSL Certificate Issues
 - **Symptom**: Azure OpenAI connection failures
 - **Solution**: Already implemented in `Program.cs` with custom validation callback
@@ -242,9 +317,18 @@ dotnet user-secrets set "AzureOpenAI:DeploymentName" "your-deployment"
 - **Symptom**: Quiz commands not recognized
 - **Solution**: Check plugin registration logging and kernel function enumeration
 
+### Directory Navigation Errors
+- **Symptom**: "Couldn't find a project to run" when running `dotnet run`
+- **Solution**: Navigate to `c:\repos\Sematic\ChatbotApi` BEFORE running `dotnet run`
+- **Symptom**: "command not found" when running `npm start`
+- **Solution**: Navigate to `c:\repos\Sematic\chatbot-frontend` BEFORE running `npm start`
+
 ## 📋 Development Checklist
 
 When working on this project:
+- [ ] **FIRST**: Stop all existing processes (`Get-Process -Name "*dotnet*","*node*" | Stop-Process -Force`)
+- [ ] **SECOND**: Verify correct directory with `pwd` before starting processes
+- [ ] **THIRD**: Navigate to `ChatbotApi` for backend, `chatbot-frontend` for frontend
 - [ ] Always register new services as singletons
 - [ ] Use the established error handling patterns with fallback responses
 - [ ] Test both online (Azure OpenAI) and offline (mock) scenarios
