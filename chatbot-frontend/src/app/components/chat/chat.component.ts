@@ -1,15 +1,18 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 import { ChatService, ChatMessage } from '../../services/chat.service';
+import { PdfService } from '../../services/pdf.service';
 import { NGXLogger } from 'ngx-logger';
 import { Subscription } from 'rxjs';
 import { QuizComponent, QuizData } from '../quiz/quiz.component';
+import { PdfUploadComponent, PdfUploadResult } from '../pdf-upload/pdf-upload.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuizComponent],
+  imports: [CommonModule, FormsModule, HttpClientModule, QuizComponent, PdfUploadComponent],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -22,11 +25,13 @@ export class ChatComponent implements OnInit, OnDestroy {
   isConnected: boolean = false;
   isTyping: boolean = false;
   userName: string = 'User';
+  showPdfUpload: boolean = false;
   
   private subscriptions: Subscription[] = [];
 
   constructor(
     private chatService: ChatService,
+    private pdfService: PdfService,
     private logger: NGXLogger
   ) {}
 
@@ -172,5 +177,40 @@ export class ChatComponent implements OnInit, OnDestroy {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
+  }
+
+  // PDF Upload functionality
+  togglePdfUpload(): void {
+    this.showPdfUpload = !this.showPdfUpload;
+    this.logger.info('PDF upload toggled', { showPdfUpload: this.showPdfUpload });
+  }
+
+  onPdfConversionComplete(result: PdfUploadResult): void {
+    this.logger.info('PDF conversion completed', { 
+      fileName: result.fileName, 
+      success: result.success,
+      markdownLength: result.markdownContent?.length || 0 
+    });
+    
+    if (result.success && result.markdownContent) {
+      // Optionally hide the PDF upload panel after successful conversion
+      this.showPdfUpload = false;
+      
+      // You could automatically send the markdown to chat or show a success message
+      this.logger.info('PDF converted successfully. Markdown is available in the result.');
+    } else {
+      this.logger.error('PDF conversion failed', { error: result.errorMessage });
+    }
+  }
+
+  onPdfMarkdownToChat(markdown: string): void {
+    if (markdown && markdown.trim()) {
+      // Add the markdown content as a message or send it to the chat
+      this.newMessage = `Here's the PDF content in markdown format:\n\n${markdown}`;
+      this.logger.info('PDF markdown added to chat input', { markdownLength: markdown.length });
+      
+      // Optionally auto-send the message
+      // this.sendMessage();
+    }
   }
 }

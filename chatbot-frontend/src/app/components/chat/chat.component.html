@@ -46,6 +46,14 @@
   </div>
 
   <div class="input-container">
+    <!-- PDF Upload Section -->
+    <div class="pdf-section" *ngIf="showPdfUpload">
+      <app-pdf-upload 
+        (conversionComplete)="onPdfConversionComplete($event)"
+        (sendMarkdownToChat)="onPdfMarkdownToChat($event)">
+      </app-pdf-upload>
+    </div>
+
     <div class="input-group">
       <input 
         #messageInput
@@ -62,6 +70,13 @@
         class="send-button"
         data-testid="send-button">
         Send
+      </button>
+      <button 
+        (click)="togglePdfUpload()" 
+        class="pdf-button"
+        [class.active]="showPdfUpload"
+        title="Upload PDF to convert to Markdown">
+        PDF
       </button>
       <button 
         (click)="clearChat()" 

@@ -60,6 +60,9 @@ builder.Services.AddSingleton<IQuizApiService>(serviceProvider =>
 builder.Services.AddSingleton<IQuizSessionStore, QuizSessionStore>();
 builder.Services.AddSingleton<IQuizSessionService, QuizSessionService>();
 
+// Add PDF to Markdown service as Singleton
+builder.Services.AddSingleton<IPdfToMarkdownService, PdfToMarkdownService>();
+
 // Add Semantic Kernel as Singleton
 builder.Services.AddSingleton<Kernel>(serviceProvider =>
 {
@@ -133,6 +136,31 @@ builder.Services.AddSingleton<Kernel>(serviceProvider =>
         {
             Log.Information("Registered function: {FunctionName}", function.Name);
         }
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Failed to register QuizPlugin");
+    }
+    
+    // Add PDF to Markdown Plugin using singleton services
+    try
+    {
+        Log.Information("Starting PdfToMarkdownPlugin registration for singleton Kernel");
+        
+        // Get singleton services from container
+        var pdfLogger = serviceProvider.GetRequiredService<ILogger<PdfToMarkdownPlugin>>();
+        var pdfService = serviceProvider.GetRequiredService<IPdfToMarkdownService>();
+        
+        var pdfPlugin = new PdfToMarkdownPlugin(pdfService, pdfLogger);
+        
+        // Add the plugin and verify it was added
+        var addedPdfPlugin = kernel.Plugins.AddFromObject(pdfPlugin, "PdfToMarkdownPlugin");
+        
+        Log.Information("PdfToMarkdownPlugin registered successfully with {FunctionCount} functions", addedPdfPlugin.Count());
+        foreach (var function in addedPdfPlugin)
+        {
+            Log.Information("Registered PDF function: {FunctionName}", function.Name);
+        }
         
         // Also log all plugins and their functions for debugging
         Log.Information("Total plugins in kernel: {PluginCount}", kernel.Plugins.Count);
@@ -147,7 +175,7 @@ builder.Services.AddSingleton<Kernel>(serviceProvider =>
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Failed to register QuizPlugin");
+        Log.Error(ex, "Failed to register PdfToMarkdownPlugin");
     }
     
     return kernel;
