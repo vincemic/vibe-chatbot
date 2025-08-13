@@ -15,6 +15,15 @@ A sophisticated full-stack chatbot application built with Angular frontend and .
 
 - **Real-time Chat Interface** with typing indicators and message history
 - **Azure OpenAI Integration** with gpt-4o deployment and function calling
+- **PDF to Markdown Conversion** with comprehensive processing capabilities:
+  - Drag-and-drop PDF upload interface with visual feedback
+  - Real-time PDF to Markdown conversion via MCP servers
+  - Multiple MCP server support with automatic fallback mechanisms
+  - Optional metadata extraction (title, author, creation date, etc.)
+  - Seamless chat integration with AI-powered PDF content analysis
+  - Base64 encoding support for secure file transmission
+  - Professional file validation and error handling
+  - Clipboard operations and markdown preview functionality
 - **Advanced Quiz System** with interactive features:
   - Multi-category quiz selection (Programming, JavaScript, HTML, CSS, Linux, DevOps, etc.)
   - Multiple choice questions with A/B/C/D answer recognition
@@ -28,14 +37,15 @@ A sophisticated full-stack chatbot application built with Angular frontend and .
 - **Responsive Design** optimized for desktop, tablet, and mobile devices
 - **Automatic Reconnection** handling for robust SignalR connections
 - **JSON Response Formatting** allowing natural AI conversation flow
-- **Comprehensive Testing** with Playwright E2E tests covering all functionality
+- **Comprehensive Testing** with 66+ unit tests and Playwright E2E tests covering all functionality
 
 ## Prerequisites
 
 - .NET 8 SDK
-- Node.js (v18 or later)
+- Node.js (v18 or later) - Required for MCP PDF servers and frontend
 - npm or yarn
 - Azure OpenAI account (optional - falls back to mock service)
+- For PDF functionality: Node.js MCP servers are automatically installed via npm
 
 ## Setup Instructions
 
@@ -94,7 +104,25 @@ cd Sematic
 
    **Note**: If no QuizAPI key is configured, the application will use fallback quiz questions for demonstration.
 
-4. Restore dependencies:
+4. **PDF to Markdown Setup**: The application includes MCP (Model Context Protocol) servers for PDF processing:
+
+   ```bash
+   # MCP dependencies are automatically installed via package.json
+   # Verify Node.js is installed (required for MCP servers)
+   node --version  # Should be v18 or later
+   
+   # Install MCP server dependencies
+   npm install
+   ```
+
+   **MCP Servers Included:**
+   - `mcp-pdf-server` - Advanced PDF text extraction with formatting preservation
+   - `@sylphlab/pdf-reader-mcp` - Backup PDF reader for additional reliability
+   - `@modelcontextprotocol/sdk` - Core MCP SDK for integration
+
+   **Note**: PDF functionality works out-of-the-box with no additional configuration required.
+
+5. Restore dependencies:
    
    ```bash
    dotnet restore
@@ -175,7 +203,36 @@ node start-app.js
   - See total completion time
   - Option to start a new quiz in any category
 
-### 💡 AI Assistant Features
+### � PDF to Markdown Conversion
+
+- **Upload PDF Documents**:
+  - Click the "📎 Upload PDF" button in the chat interface
+  - Drag and drop PDF files directly onto the upload zone
+  - Or click to browse and select PDF files from your computer
+
+- **Conversion Options**:
+  - Toggle metadata inclusion (title, author, creation date, etc.)
+  - Real-time progress indicators during conversion
+  - Automatic validation for file type and size (up to 10MB)
+
+- **AI Integration**:
+  - Ask the AI: "Convert this PDF to markdown" after uploading
+  - Natural language commands: "help me with PDF conversion"
+  - The AI can analyze and discuss the converted PDF content
+
+- **Output Management**:
+  - Preview converted markdown content before use
+  - Copy markdown to clipboard with one click
+  - Send converted content directly to chat for AI analysis
+  - Automatic cleanup of temporary files
+
+- **Supported Features**:
+  - Text-based PDFs with formatting preservation
+  - Multi-page document support with page count
+  - Automatic heading detection and markdown formatting
+  - Error handling with detailed user feedback
+
+### �💡 AI Assistant Features
 
 - **Natural Conversation**: Engage in general conversation on any topic
 - **Function Calling**: The AI can call quiz functions based on your natural language requests
@@ -186,13 +243,17 @@ node start-app.js
 
 ### Recent Enhancements
 
+- **PDF to Markdown Integration**: Complete MCP server integration with dual-server fallback mechanisms
+- **Comprehensive Testing Suite**: 66+ unit tests covering services, components, and integration scenarios
+- **Advanced File Upload**: Drag-and-drop PDF interface with real-time conversion and markdown preview
+- **MCP Server Architecture**: Node.js-based Model Context Protocol servers for PDF processing
 - **Azure OpenAI Function Calling**: Implemented `ToolCallBehavior.AutoInvokeKernelFunctions` for seamless AI-to-plugin communication
 - **Enhanced Quiz UX**: Category selection workflow with intelligent answer recognition
 - **JSON Response Formatting**: Natural AI conversation flow with structured data parsing
 - **Comprehensive Error Handling**: Multi-layer fallback mechanisms with detailed logging
 - **Singleton Architecture**: Consistent dependency injection across SignalR hubs and controllers
 - **SSL Certificate Handling**: Custom validation for development environments
-- **Thread-Safe Services**: ConcurrentDictionary and locking patterns for quiz session management
+- **Thread-Safe Services**: ConcurrentDictionary and locking patterns for quiz and PDF session management
 
 ### Key Technical Decisions
 
@@ -208,27 +269,36 @@ node start-app.js
 Sematic/
 ├── ChatbotApi/                     # .NET Core 8 Web API
 │   ├── Controllers/
-│   │   └── TestController.cs      # Diagnostic endpoints
+│   │   ├── TestController.cs      # Diagnostic endpoints
+│   │   └── PdfController.cs       # PDF conversion REST API endpoints
 │   ├── Hubs/
 │   │   └── ChatHub.cs             # SignalR hub with enhanced system prompts
 │   ├── Models/
 │   │   ├── AzureOpenAISettings.cs # Configuration models
-│   │   └── QuizModels.cs          # Quiz domain models
+│   │   ├── QuizModels.cs          # Quiz domain models
+│   │   └── PdfModels.cs           # PDF conversion models and DTOs
 │   ├── Services/
 │   │   ├── MockChatCompletionService.cs  # Fallback AI service
 │   │   ├── QuizApiService.cs            # External quiz API integration
 │   │   ├── QuizSessionService.cs        # Quiz session management
-│   │   └── QuizSessionStore.cs          # Thread-safe session storage
+│   │   ├── QuizSessionStore.cs          # Thread-safe session storage
+│   │   ├── IPdfToMarkdownService.cs     # PDF service interface
+│   │   └── PdfToMarkdownService.cs      # MCP server PDF processing
 │   ├── Plugins/
-│   │   └── QuizPlugin.cs          # Semantic Kernel quiz plugin (6 functions)
-│   └── Program.cs                 # Main API configuration with singleton services
-├── chatbot-frontend/               # Angular 19 SPA
+│   │   ├── QuizPlugin.cs          # Semantic Kernel quiz plugin (6 functions)
+│   │   └── PdfToMarkdownPlugin.cs # Semantic Kernel PDF plugin (3 functions)
+│   ├── mcp-config.json           # MCP server configuration
+│   ├── package.json              # Node.js MCP server dependencies
+│   └── Program.cs                # Main API configuration with singleton services
+├── chatbot-frontend/              # Angular 19 SPA
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── components/
-│   │   │   │   └── chat/          # Chat component with typing indicators
+│   │   │   │   ├── chat/          # Chat component with typing indicators
+│   │   │   │   └── pdf-upload/    # PDF upload component with drag-drop
 │   │   │   └── services/
-│   │   │       └── chat.service.ts # SignalR client with auto-reconnection
+│   │   │       ├── chat.service.ts # SignalR client with auto-reconnection
+│   │   │       └── pdf.service.ts  # PDF API service with file handling
 │   │   └── styles.scss            # Responsive SCSS styling
 │   ├── e2e/                       # Playwright E2E test suite
 │   │   ├── chatbot.spec.ts        # Core functionality tests
@@ -237,12 +307,18 @@ Sematic/
 │   │   ├── accessibility.spec.ts  # Accessibility compliance tests
 │   │   ├── quiz.spec.ts           # Quiz functionality tests
 │   │   └── test-setup.ts          # Test utilities and fixtures
+│   ├── src/app/services/pdf.service.spec.ts     # PDF service unit tests (66+ tests)
+│   ├── src/app/components/pdf-upload/pdf-upload.component.spec.ts # PDF component tests
+│   ├── src/app/components/chat/chat.component.spec.ts # Chat integration tests
 │   ├── playwright.config.ts       # Multi-browser test configuration
 ├── .vscode/                       # VS Code workspace configuration
 │   ├── launch.json               # Multi-configuration debugging
 │   └── tasks.json                # Build and test automation
 ├── .github/
 │   └── copilot-instructions.md   # AI development assistant guidelines
+├── PDF-INTEGRATION-COMPLETE.md   # PDF backend integration documentation
+├── PDF-FRONTEND-INTEGRATION-COMPLETE.md # PDF frontend integration guide
+├── PDF-TO-MARKDOWN.md            # PDF usage and technical documentation
 ├── start-app.js                  # Development startup script
 ├── stop-all-processes.ps1        # Process cleanup utilities
 └── README.md                     # This comprehensive documentation
@@ -335,6 +411,19 @@ The Angular app is configured to connect to:
    - Check that ports 4200 and 7271 are available
    - Run `npx playwright install` to ensure browser dependencies are installed
 
+7. **PDF Conversion Issues**
+   - Verify Node.js is installed and accessible (required for MCP servers)
+   - Check that MCP server dependencies are installed: `npm install` in ChatbotApi directory
+   - Ensure PDF files are valid and not corrupted (text-based PDFs work best)
+   - Check file size limits (10MB maximum by default)
+   - For scanned PDFs: Limited support - text-based content only
+
+8. **MCP Server Problems**
+   - Check Node.js version: `node --version` (v18+ required)
+   - Verify MCP packages: Check that `node_modules` contains `mcp-pdf-server` and related packages
+   - Review backend logs for MCP server startup errors
+   - Ensure write permissions to temporary directory for PDF processing
+
 ## Development
 
 ### Adding New Features
@@ -350,12 +439,18 @@ The project includes comprehensive testing at multiple levels:
 
 ### Unit Tests (Angular)
 
-Run Angular unit tests using Karma:
+Run Angular unit tests using Karma - includes 66+ comprehensive tests:
 
 ```bash
 cd chatbot-frontend
 npm run test
 ```
+
+**Test Coverage Includes:**
+- **PDF Service Tests**: API communication, file validation, error handling, processing state management
+- **PDF Upload Component Tests**: Drag-drop functionality, conversion workflow, UI interactions, clipboard operations
+- **Chat Component Integration Tests**: PDF functionality integration, real-time communication, message handling
+- **Service Integration Tests**: Observable patterns, async operations, error scenarios
 
 ### End-to-End Tests (Playwright)
 
@@ -425,6 +520,7 @@ The E2E tests cover:
 - ✅ Long message support
 - ✅ Accessibility features and keyboard navigation
 - ✅ **Quiz functionality**: Start quiz, answer questions, score tracking, educational explanations
+- ✅ **PDF functionality**: File upload, conversion workflow, error handling, chat integration
 - ✅ **Singleton architecture**: Consistent service instances across all contexts
 
 ### Testing Strategy
