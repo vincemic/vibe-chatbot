@@ -71,8 +71,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'dotnet run',
-      cwd: '../ChatbotApi',
+      command: 'powershell -ExecutionPolicy Bypass -File scripts\\start-backend.ps1',
       port: 7271,
       reuseExistingServer: !process.env.CI,
       timeout: 60000,

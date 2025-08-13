@@ -25,6 +25,9 @@ test.describe('Basic Page Load Tests', () => {
     const messageInput = page.locator('[data-testid="message-input"]');
     await expect(messageInput).toBeVisible();
     
+    // Wait for the input to be enabled (SignalR connection established)
+    await expect(messageInput).toBeEnabled({ timeout: 30000 });
+    
     // Type a test message
     await messageInput.fill('Hello, this is a test message');
     

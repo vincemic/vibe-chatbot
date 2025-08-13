@@ -196,7 +196,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// Disable HTTPS redirection for development to avoid SignalR negotiation issues in some browsers
+// app.UseHttpsRedirection();
 
 app.UseCors("AllowAngularApp");
 

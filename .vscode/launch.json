@@ -63,7 +63,31 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/playwright",
+      "args": ["test", "--debug", "--project=chromium"],
+      "cwd": "${workspaceFolder}/chatbot-frontend",
+      "console": "integratedTerminal",
+      "env": {
+        "CI": "false"
+      }
+    },
+    {
+      "name": "Debug E2E Tests (All Browsers)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/playwright",
       "args": ["test", "--debug"],
+      "cwd": "${workspaceFolder}/chatbot-frontend",
+      "console": "integratedTerminal",
+      "env": {
+        "CI": "false"
+      }
+    },
+    {
+      "name": "Debug Single Test File",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/chatbot-frontend/node_modules/.bin/playwright",
+      "args": ["test", "e2e/basic-page-load.spec.ts", "--debug", "--project=chromium"],
       "cwd": "${workspaceFolder}/chatbot-frontend",
       "console": "integratedTerminal",
       "env": {

@@ -27,8 +27,13 @@ export class ChatService {
 
   public async startConnection(): Promise<void> {
     try {
+      // Use HTTP in development for better browser compatibility
+      const hubUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5204/chathub'  // HTTP for localhost
+        : 'https://localhost:7271/chathub'; // HTTPS for production
+        
       this.hubConnection = new HubConnectionBuilder()
-        .withUrl('https://localhost:7271/chathub') // Updated to match the correct HTTPS port
+        .withUrl(hubUrl)
         .withAutomaticReconnect()
         .configureLogging(LogLevel.Information)
         .build();

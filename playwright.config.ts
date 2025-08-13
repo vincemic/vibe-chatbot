@@ -18,13 +18,37 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'Mobile Safari',
+      use: { ...devices['iPhone 12'] },
+    },
   ],
 
   webServer: [
     {
-      command: 'cd ChatbotApi && dotnet run',
+      command: 'powershell -ExecutionPolicy Bypass -File "../scripts/start-backend.ps1"',
       port: 5204,
       reuseExistingServer: !process.env.CI,
+      cwd: '.',
+      timeout: 120 * 1000, // 2 minutes
+    },
+    {
+      command: 'npm start',
+      port: 4200,
+      reuseExistingServer: !process.env.CI,
+      cwd: '.',
     },
   ],
 });
